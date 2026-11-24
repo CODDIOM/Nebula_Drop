@@ -101,6 +101,11 @@ const el = {
   levelUpBanner: document.getElementById("levelUpBanner"),
   levelUpTitle: document.getElementById("levelUpTitle"),
   levelUpDesc: document.getElementById("levelUpDesc"),
+  introOverlay: document.getElementById("introOverlay"),
+  introStatsPill: document.getElementById("introStatsPill"),
+  btnStartGame: document.getElementById("btnStartGame"),
+  btnNewGameIntro: document.getElementById("btnNewGameIntro"),
+  btnBrandHome: document.getElementById("btnBrandHome"),
 };
 
 let meta = loadMeta();
@@ -142,6 +147,7 @@ const state = {
   flashAlpha: 0,
   dangerTimer: 0,
   dangerActive: false,
+  introActive: true,
   gameOver: false,
   laserMode: false,
   freePowers: { quake: 1, laser: 1, zeroG: 1, magnet: 1 },
@@ -1217,7 +1223,7 @@ function tick(now) {
   const dt = Math.min(0.033, (now - lastTime) / 1000);
   lastTime = now;
 
-  if (!state.gameOver) {
+  if (!state.gameOver && !state.introActive) {
     if (!state.canDrop) {
       state.dropCooldown -= dt;
       if (state.dropCooldown <= 0) state.canDrop = true;
@@ -1368,9 +1374,38 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 
+function openIntroScreen() {
+  state.introActive = true;
+  const hasActiveRun = state.bodies.length > 0 && !state.gameOver;
+  el.introStatsPill.textContent = `🏆 Rekor: ${meta.bestScore.toLocaleString("tr-TR")} • ✦ ${meta.stardust}${meta.loginStreak > 0 ? ` • 🔥 ${meta.loginStreak}. Gün` : ""}`;
+  el.btnStartGame.textContent = hasActiveRun
+    ? `▶ DEVAM ET (Skor: ${state.score.toLocaleString("tr-TR")})`
+    : "🚀 OYUNA BAŞLA";
+  el.btnNewGameIntro.classList.toggle("hidden", !hasActiveRun);
+  el.introOverlay.classList.remove("hidden");
+}
+
+function startGameFromIntro(selectedMode = null) {
+  state.introActive = false;
+  el.introOverlay.classList.add("hidden");
+  sound.ensureCtx();
+  sound.playSwap();
+  if (selectedMode) {
+    resetGame(selectedMode);
+  }
+}
+
+el.btnStartGame.addEventListener("click", () => startGameFromIntro(null));
+el.btnNewGameIntro.addEventListener("click", () => startGameFromIntro("classic"));
+el.btnBrandHome.addEventListener("click", openIntroScreen);
+document.querySelectorAll("[data-intro-mode]").forEach((btn) => {
+  btn.addEventListener("click", () => startGameFromIntro(btn.dataset.introMode));
+});
+
 if (!restoreClassicRunIfSaved()) {
   resetGame("classic");
 }
+openIntroScreen();
 
 ads.init?.();
 if (typeof ads.setBannerVisible === "function") {
