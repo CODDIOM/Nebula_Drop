@@ -93,6 +93,7 @@ const el = {
   btnContinueRewarded: document.getElementById("btnContinueRewarded"),
   btnRewardedStardust: document.getElementById("btnRewardedStardust"),
   btnRemoveAds: document.getElementById("btnRemoveAds"),
+  adBannerSlot: document.getElementById("adBannerSlot"),
   levelBadge: document.getElementById("levelBadge"),
   levelBar: document.getElementById("levelBar"),
   levelProgressText: document.getElementById("levelProgressText"),
@@ -879,7 +880,15 @@ el.btnContinueAd.addEventListener("click", () => {
   continueByClearingTop();
 });
 
-el.btnRestart.addEventListener("click", () => resetGame(state.mode));
+let restartCount = 0;
+
+el.btnRestart.addEventListener("click", async () => {
+  restartCount += 1;
+  if (!meta.adsRemoved && restartCount % 2 === 0) {
+    await ads.showInterstitial();
+  }
+  resetGame(state.mode);
+});
 
 document.querySelectorAll(".mode-pill").forEach((pill) => {
   pill.addEventListener("click", () => {
@@ -1105,6 +1114,7 @@ el.btnRemoveAds.addEventListener("click", () => {
   meta.adsRemoved = !meta.adsRemoved;
   saveMeta(meta);
   el.btnRemoveAds.textContent = meta.adsRemoved ? "💎 Reklamsız Aktif ✓" : "💎 Reklamsız Mod";
+  ads.setBannerVisible(!meta.adsRemoved, el.adBannerSlot);
 });
 
 el.btnDex.addEventListener("click", () => {
@@ -1357,6 +1367,9 @@ function tick(now) {
 if (!restoreClassicRunIfSaved()) {
   resetGame("classic");
 }
+
+ads.init();
+ads.setBannerVisible(!meta.adsRemoved, el.adBannerSlot);
 
 if (!meta.onboardingSeen) {
   el.onboardingHint.classList.remove("hidden");
