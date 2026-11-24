@@ -1114,7 +1114,11 @@ el.btnRemoveAds.addEventListener("click", () => {
   meta.adsRemoved = !meta.adsRemoved;
   saveMeta(meta);
   el.btnRemoveAds.textContent = meta.adsRemoved ? "💎 Reklamsız Aktif ✓" : "💎 Reklamsız Mod";
-  ads.setBannerVisible(!meta.adsRemoved, el.adBannerSlot);
+  if (typeof ads.setBannerVisible === "function") {
+    ads.setBannerVisible(!meta.adsRemoved, el.adBannerSlot);
+  } else {
+    el.adBannerSlot.classList.toggle("hidden", Boolean(meta.adsRemoved));
+  }
 });
 
 el.btnDex.addEventListener("click", () => {
@@ -1368,8 +1372,12 @@ if (!restoreClassicRunIfSaved()) {
   resetGame("classic");
 }
 
-ads.init();
-ads.setBannerVisible(!meta.adsRemoved, el.adBannerSlot);
+ads.init?.();
+if (typeof ads.setBannerVisible === "function") {
+  ads.setBannerVisible(!meta.adsRemoved, el.adBannerSlot);
+} else {
+  el.adBannerSlot.classList.toggle("hidden", Boolean(meta.adsRemoved));
+}
 
 if (!meta.onboardingSeen) {
   el.onboardingHint.classList.remove("hidden");
