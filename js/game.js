@@ -440,6 +440,7 @@ function applyTheme(themeId) {
   state.activeTheme = themeId;
   meta.activeTheme = themeId;
   document.body.dataset.theme = themeId;
+  sound.setTrack(themeId);
   saveMeta(meta);
   renderSlotPreview(nextCanvas, state.next, state.activeTheme);
   renderSlotPreview(holdCanvas, state.hold, state.activeTheme);
@@ -1242,6 +1243,7 @@ function tick(now) {
 
     if (state.feverTimer > 0) {
       state.feverTimer = Math.max(0, state.feverTimer - dt);
+      sound.setFeverMode(state.feverTimer > 0);
       if (state.feverTimer === 0) updateHUD();
     }
 
@@ -1405,6 +1407,7 @@ document.querySelectorAll("[data-intro-mode]").forEach((btn) => {
 if (!restoreClassicRunIfSaved()) {
   resetGame("classic");
 }
+sound.setTrack(state.activeTheme);
 openIntroScreen();
 
 ads.init?.();

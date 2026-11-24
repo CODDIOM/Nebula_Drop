@@ -5,13 +5,23 @@ class SoundEngine {
     this.musicEnabled = true;
     this.musicTimer = null;
     this.musicStep = 0;
+    this.musicBus = null;
+    this.noiseBuffer = null;
+    this.trackId = "cosmic";
+    this.feverActive = false;
   }
 
   ensureCtx() {
     if (this.muted) return null;
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) this.ctx = new AudioCtx();
+      if (AudioCtx) {
+        this.ctx = new AudioCtx();
+        this.musicBus = this.ctx.createGain();
+        this.musicBus.gain.value = 0.55;
+        this.musicBus.connect(this.ctx.destination);
+        this.noiseBuffer = this.createNoiseBuffer(this.ctx);
+      }
     }
     if (this.ctx && this.ctx.state === "suspended") {
       this.ctx.resume().catch(() => {});
@@ -20,6 +30,24 @@ class SoundEngine {
       this.startAmbientMusic();
     }
     return this.ctx;
+  }
+
+  createNoiseBuffer(ctx) {
+    const bufferSize = ctx.sampleRate * 0.25;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+  }
+
+  setTrack(themeId) {
+    this.trackId = themeId || "cosmic";
+  }
+
+  setFeverMode(active) {
+    this.feverActive = Boolean(active);
   }
 
   toggleMute() {
@@ -40,30 +68,156 @@ class SoundEngine {
     return this.musicEnabled;
   }
 
+  playMusicNote(freq, dur, type, vol, cutoff = 1800, whenOffset = 0) {
+    if (!this.ctx || !this.musicBus || !freq) return;
+    const now = this.ctx.currentTime + whenOffset;
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(this.feverActive ? cutoff * 1.45 : cutoff, now);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(vol, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    osc.connect(filter).connect(gain).connect(this.musicBus);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+
+  playKick(vol = 0.24) {
+    if (!this.ctx || !this.musicBus) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(135, now);
+    osc.frequency.exponentialRampToValueAtTime(42, now + 0.14);
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    osc.connect(gain).connect(this.musicBus);
+    osc.start(now);
+    osc.stop(now + 0.17);
+  }
+
+  playHat(vol = 0.045, open = false) {
+    if (!this.ctx || !this.musicBus || !this.noiseBuffer) return;
+    const now = this.ctx.currentTime;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.setValueAtTime(open ? 5000 : 7500, now);
+
+    const gain = this.ctx.createGain();
+    const dur = open ? 0.11 : 0.04;
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    src.connect(filter).connect(gain).connect(this.musicBus);
+    src.start(now);
+    src.stop(now + dur + 0.01);
+  }
+
   startAmbientMusic() {
     if (this.musicTimer || this.muted || !this.musicEnabled) return;
-    const scale = [220, 261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 392.0];
+
+    // 32 adımlık (4 ölçülük) akor, bas ve melodi kalıpları
+    const tracks = {
+      cosmic: {
+        chords: [
+          [220.0, 261.63, 329.63], // Am
+          [174.61, 220.0, 261.63], // F
+          [261.63, 329.63, 392.0], // C
+          [196.0, 246.94, 293.66], // G
+        ],
+        bass: [110.0, 87.31, 130.81, 98.0],
+        melody: [
+          440, 0, 523.25, 659.25, 587.33, 0, 523.25, 392,
+          349.23, 0, 440, 523.25, 440, 0, 392, 329.63,
+          523.25, 0, 659.25, 783.99, 659.25, 0, 523.25, 440,
+          392, 493.88, 587.33, 0, 659.25, 587.33, 493.88, 0,
+        ],
+        leadType: "triangle",
+      },
+      cyber: {
+        chords: [
+          [164.81, 196.0, 246.94], // Em
+          [130.81, 164.81, 196.0], // C
+          [146.83, 174.61, 220.0], // Dm
+          [123.47, 146.83, 185.0], // Bm
+        ],
+        bass: [82.41, 65.41, 73.42, 61.74],
+        melody: [
+          329.63, 392, 493.88, 392, 659.25, 0, 587.33, 493.88,
+          261.63, 329.63, 392, 523.25, 493.88, 0, 392, 329.63,
+          293.66, 349.23, 440, 587.33, 523.25, 0, 440, 349.23,
+          246.94, 369.99, 493.88, 0, 587.33, 493.88, 392, 0,
+        ],
+        leadType: "sawtooth",
+      },
+      kawaii: {
+        chords: [
+          [261.63, 329.63, 392.0], // C
+          [196.0, 246.94, 293.66], // G
+          [220.0, 261.63, 329.63], // Am
+          [174.61, 220.0, 261.63], // F
+        ],
+        bass: [130.81, 98.0, 110.0, 87.31],
+        melody: [
+          523.25, 659.25, 783.99, 0, 659.25, 783.99, 880, 0,
+          783.99, 659.25, 587.33, 0, 493.88, 587.33, 659.25, 0,
+          440, 523.25, 659.25, 0, 523.25, 659.25, 783.99, 0,
+          698.46, 659.25, 587.33, 523.25, 587.33, 0, 523.25, 0,
+        ],
+        leadType: "sine",
+      },
+    };
+
     this.musicTimer = setInterval(() => {
       if (this.muted || !this.musicEnabled || !this.ctx || this.ctx.state !== "running") {
         return;
       }
-      const now = this.ctx.currentTime;
-      const freq = scale[this.musicStep % scale.length];
+
+      const track = tracks[this.trackId] || tracks.cosmic;
+      const step = this.musicStep % 32;
+      const bar = Math.floor(step / 8);
+      const stepInBar = step % 8;
       this.musicStep += 1;
 
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, now);
+      // 1. Yumuşak Pad Akorları (her ölçü başında)
+      if (stepInBar === 0) {
+        const chord = track.chords[bar];
+        chord.forEach((f) => this.playMusicNote(f, 1.9, "sine", 0.032, 950));
+      }
 
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(0.028, now + 0.25);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.35);
+      // 2. Nabız Bas (1, 3, 5, 7. adımlarda)
+      const bassFreq = track.bass[bar];
+      if (stepInBar % 2 === 0) {
+        const oct = stepInBar === 6 ? bassFreq * 2 : bassFreq;
+        this.playMusicNote(oct, 0.24, "triangle", 0.11, 480);
+      }
 
-      osc.connect(gain).connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 1.4);
-    }, 1150);
+      // 3. Melodi Lead
+      const melFreq = track.melody[step];
+      if (melFreq > 0) {
+        this.playMusicNote(melFreq, 0.28, track.leadType, 0.065, 1900);
+      }
+
+      // 4. Lo-Fi / Synthwave Ritim (Kick & Hi-Hat)
+      if (stepInBar === 0 || stepInBar === 4) {
+        this.playKick(0.22);
+      }
+      if (stepInBar % 2 === 1) {
+        this.playHat(0.038, stepInBar === 7);
+      }
+    }, 250);
   }
 
   stopAmbientMusic() {
