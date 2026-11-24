@@ -1,8 +1,9 @@
-const CACHE_NAME = "coddiom-nebula-drop-v12";
+const CACHE_NAME = "coddiom-nebula-drop-v13";
 const ASSETS = [
   "./",
   "./index.html",
   "./privacy.html",
+  "./ads.txt",
   "./manifest.json",
   "./assets/icon.svg",
   "./css/style.css",

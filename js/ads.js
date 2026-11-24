@@ -1,7 +1,13 @@
-// Google AdMob (Capacitor) + Web Önizleme Reklam Servisi
-// Canlı yayına geçerken:
-// 1. useTestIds değerini false yapın
-// 2. liveIds içine AdMob panelinden aldığınız Android ve iOS ID'lerinizi yazın
+// Google AdSense (Web) + Google AdMob (Capacitor Mobil) Reklam Servisi
+// Web'de canlı reklam için:
+// 1. Oyunu kendi domaininize (örn. nebula.coddiom.com) bağlayın
+// 2. ADSENSE_CONFIG.enabled = true yapın ve client + bannerSlot ID'lerinizi girin
+
+export const ADSENSE_CONFIG = {
+  enabled: false,
+  client: "ca-pub-xxxxxxxxxxxxxxxx", // Örn: "ca-pub-1234567890123456"
+  bannerSlot: "xxxxxxxxxx",          // AdSense'te oluşturduğunuz 320x50 Banner Slot ID
+};
 
 export const AD_CONFIG = {
   useTestIds: true,
@@ -38,6 +44,8 @@ class AdService {
     this.adMobPlugin = window.Capacitor?.Plugins?.AdMob || null;
     this.initialized = false;
     this.bannerShown = false;
+    this.adSenseScriptLoaded = false;
+    this.adSenseBannerPushed = false;
   }
 
   getUnitId(type) {
@@ -45,8 +53,31 @@ class AdService {
     return group[this.platform][type];
   }
 
+  isAdSenseReady() {
+    return (
+      !this.isNative &&
+      ADSENSE_CONFIG.enabled &&
+      ADSENSE_CONFIG.client !== "ca-pub-xxxxxxxxxxxxxxxx" &&
+      ADSENSE_CONFIG.bannerSlot !== "xxxxxxxxxx"
+    );
+  }
+
+  loadAdSenseScript() {
+    if (this.adSenseScriptLoaded || !this.isAdSenseReady()) return;
+    this.adSenseScriptLoaded = true;
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CONFIG.client}`;
+    s.crossOrigin = "anonymous";
+    document.head.appendChild(s);
+  }
+
   async init() {
-    if (!this.isNative || !this.adMobPlugin || this.initialized) return;
+    if (!this.isNative) {
+      this.loadAdSenseScript();
+      return;
+    }
+    if (!this.adMobPlugin || this.initialized) return;
     try {
       await this.adMobPlugin.initialize({
         initializeForTesting: AD_CONFIG.useTestIds,
@@ -60,7 +91,26 @@ class AdService {
   async setBannerVisible(visible, slotEl = null) {
     if (slotEl) {
       slotEl.classList.toggle("hidden", !visible);
+
+      // Web Google AdSense Banner rendering
+      if (!this.isNative && visible) {
+        if (this.isAdSenseReady()) {
+          this.loadAdSenseScript();
+          if (!this.adSenseBannerPushed) {
+            slotEl.innerHTML = `<ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px" data-ad-client="${ADSENSE_CONFIG.client}" data-ad-slot="${ADSENSE_CONFIG.bannerSlot}"></ins>`;
+            try {
+              (window.adsbygoogle = window.adsbygoogle || []).push({});
+              this.adSenseBannerPushed = true;
+            } catch {
+              // Ignore until script finishes loading
+            }
+          }
+        } else {
+          slotEl.textContent = "📢 Web Reklam Alanı (AdSense ID bekleniyor)";
+        }
+      }
     }
+
     if (!this.isNative || !this.adMobPlugin) return;
     await this.init();
     try {
@@ -127,8 +177,8 @@ class AdService {
 
     return this.showPreviewOverlay(
       "GEÇİŞ REKLAMI ÖNİZLEME",
-      "📺 AdMob Interstitial",
-      "Canlı mobil uygulamada her 2 oyunda bir burada tam ekran reklam gösterilir.<br/><em>(Reklamsız Mod açıkken gösterilmez)</em>",
+      "📺 Geçiş Reklamı",
+      "Mobil uygulamada her 2 oyunda bir AdMob Interstitial gösterilir.<br/><em>(Web'de alt AdSense 320×50 banner aktiftir)</em>",
       2
     );
   }
@@ -150,8 +200,8 @@ class AdService {
 
     return this.showPreviewOverlay(
       "ÖDÜLLÜ REKLAM ÖNİZLEME",
-      "🎬 AdMob Rewarded Video",
-      `Canlı mobil derlemede burada ödüllü video oynatılır.<br/>Ödül: <strong>${rewardLabel}</strong>`,
+      "🎬 Ödüllü Video Alanı",
+      `Mobil derlemede AdMob ödüllü video oynatılır.<br/>Ödül: <strong>${rewardLabel}</strong>`,
       2
     );
   }

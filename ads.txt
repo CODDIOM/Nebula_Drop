@@ -1,0 +1,2 @@
+# Google AdSense onayından sonra aşağıdaki satırın başındaki '#' işaretini kaldırıp kendi Publisher ID'nizi yazın:
+# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
