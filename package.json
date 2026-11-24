@@ -1,0 +1,19 @@
+{
+  "name": "coddiom-nebula-drop",
+  "version": "1.0.0",
+  "description": "CODDIOM Nebula Drop - Cosmic Merge Hybrid-Casual Mobile Game",
+  "private": true,
+  "scripts": {
+    "serve": "python3 -m http.server 8765",
+    "cap:sync": "npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}

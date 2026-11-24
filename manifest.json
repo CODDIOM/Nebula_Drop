@@ -1,0 +1,18 @@
+{
+  "name": "CODDIOM Nebula Drop",
+  "short_name": "Nebula Drop",
+  "description": "Cosmic Merge hybrid-casual puzzle game by CODDIOM",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060919",
+  "theme_color": "#060919",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>NEBULA DROP — CODDIOM Cosmic Merge</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/icon.svg" />
+  <meta name="theme-color" content="#060919" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="bg-stars" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <!-- Top Brand & Meta Bar -->
+    <header class="top-bar">
+      <div class="brand-badge">
+        <span class="brand-dot"></span>
+        <span class="brand-name">CODDIOM</span>
+        <span class="game-tag">NEBULA DROP</span>
+      </div>
+      <div class="top-actions">
+        <div class="stardust-pill" title="Yıldız Tozu (Stardust)">
+          <span class="pill-icon">✦</span>
+          <span id="stardustCount">0</span>
+        </div>
+        <button id="btnMissions" class="icon-btn" title="Günlük Görevler" aria-label="Günlük Görevler">🎯</button>
+        <button id="btnThemes" class="icon-btn" title="Tema Mağazası" aria-label="Tema Mağazası">🎨</button>
+        <button id="btnDex" class="icon-btn" title="Kozmik Albüm" aria-label="Kozmik Albüm">🪐</button>
+        <button id="btnMusic" class="icon-btn" title="Müzik Aç/Kapat" aria-label="Müzik Aç/Kapat">🎵</button>
+        <button id="btnSound" class="icon-btn" title="Ses Efektleri Aç/Kapat" aria-label="Ses Efektleri Aç/Kapat">🔊</button>
+      </div>
+    </header>
+
+    <!-- Game Mode Selector -->
+    <nav class="mode-bar" aria-label="Oyun Modları">
+      <button class="mode-pill active" data-mode="classic">🪐 Klasik</button>
+      <button class="mode-pill" data-mode="rush">⚡ 90sn Rush</button>
+      <button class="mode-pill" data-mode="daily">📅 Günlük</button>
+      <span id="rushTimerPill" class="rush-timer-pill hidden">⏱ 01:30</span>
+    </nav>
+
+    <!-- Score, Fever & Next Planet HUD -->
+    <section class="hud-panel">
+      <div class="score-block">
+        <div class="score-top-row">
+          <span class="score-label">SKOR</span>
+          <span id="levelBadge" class="level-badge">LVL 1</span>
+        </div>
+        <div id="scoreValue" class="score-value">0</div>
+        <div class="level-track" title="Sonraki Seviye İlerlemesi">
+          <div id="levelBar" class="level-fill"></div>
+        </div>
+        <div id="levelProgressText" class="level-progress-text">0 / 350</div>
+        <div class="best-row">REKOR: <span id="bestValue">0</span></div>
+      </div>
+
+      <div class="fever-block">
+        <div class="fever-header">
+          <span id="comboBadge" class="combo-badge hidden">x2 KOMBO</span>
+          <span id="quantumBadge" class="quantum-badge" title="Kuantum Joker Küre Sayacı">🌈 12</span>
+          <span id="feverLabel" class="fever-label">FEVER</span>
+        </div>
+        <div class="fever-track">
+          <div id="feverBar" class="fever-fill"></div>
+        </div>
+        <div id="comboTimerTrack" class="combo-timer-track hidden">
+          <div id="comboTimerFill" class="combo-timer-fill"></div>
+        </div>
+      </div>
+
+      <div class="slots-block">
+        <button id="btnHold" class="slot-box hold-btn" title="Yedek Slot (Değiştir)">
+          <div class="next-label">YEDEK ⇄</div>
+          <canvas id="holdPreview" width="48" height="48"></canvas>
+        </button>
+        <div class="slot-box">
+          <div class="next-label">SONRAKİ</div>
+          <canvas id="nextPreview" width="48" height="48"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mini Evolution Guide Strip -->
+    <div id="evolutionStrip" class="evolution-strip" aria-label="Kozmik Evrim Sırası"></div>
+
+    <!-- Main Physics Canvas Container -->
+    <main class="stage-wrapper">
+      <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+      <!-- Live Stage Level Tag -->
+      <div id="stageLevelPill" class="stage-level-pill">LVL 1 • Normal</div>
+
+      <!-- Level Up Celebration Banner -->
+      <div id="levelUpBanner" class="level-up-banner hidden">
+        <div id="levelUpTitle" class="level-up-title">🚀 SEVİYE 2!</div>
+        <div id="levelUpDesc" class="level-up-desc">❄️ Buzlu Gezegenler & Hızlı Düşüş</div>
+      </div>
+
+      <!-- Laser Aiming Banner -->
+      <div id="laserPrompt" class="mode-banner hidden">
+        ⚡ İmha etmek istediğin gezegene dokun!
+        <button id="btnCancelLaser" class="cancel-mini">İptal</button>
+      </div>
+
+      <!-- Zero-G Banner -->
+      <div id="zeroGBanner" class="mode-banner zero-g hidden">
+        🌀 ZERO-G AKTİF! <span id="zeroGTimer">3.0s</span>
+      </div>
+
+      <!-- Magnet Banner -->
+      <div id="magnetBanner" class="mode-banner magnet hidden">
+        🧲 MIKNATIS AKTİF! <span id="magnetTimer">3.5s</span>
+      </div>
+
+      <!-- Danger Countdown Overlay -->
+      <div id="dangerBanner" class="danger-banner hidden">
+        ⚠️ TAŞMA RİSKİ: <span id="dangerTimer">2.5s</span>
+      </div>
+
+      <!-- First-Time Onboarding Hint -->
+      <div id="onboardingHint" class="onboarding-hint hidden">
+        👆 Kaydırarak nişan al, bırakınca düşür!
+      </div>
+
+      <!-- Game Over Overlay -->
+      <div id="gameOverModal" class="overlay-modal hidden">
+        <div class="modal-card">
+          <div class="modal-eyebrow">KOZMİK ÇÖKÜŞ</div>
+          <h2>OYUN BİTTİ</h2>
+          <div class="final-stats">
+            <div class="stat-box">
+              <span>SKOR</span>
+              <strong id="finalScore">0</strong>
+            </div>
+            <div class="stat-box">
+              <span>REKOR</span>
+              <strong id="finalBest">0</strong>
+            </div>
+            <div class="stat-box highlight">
+              <span>KAZANILAN ✦</span>
+              <strong id="earnedStardust">+0</strong>
+            </div>
+          </div>
+          <div id="maxPlanetReached" class="max-planet-badge"></div>
+          <div class="modal-buttons">
+            <button id="btnContinueRewarded" class="btn-ad">
+              🎬 Reklam İzle & Devam Et (Ücretsiz)
+            </button>
+            <button id="btnContinueAd" class="btn-secondary">
+              ✦ 40 ile Devam Et (Üstü Temizle)
+            </button>
+            <button id="btnShareScore" class="btn-share">
+              📤 Skoru Paylaş
+            </button>
+            <button id="btnRestart" class="btn-primary">
+              🚀 Yeniden Başla
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Power-Up Dock -->
+    <footer class="powerup-dock">
+      <button id="btnQuake" class="power-btn" data-cost="25">
+        <span class="power-icon">🌋</span>
+        <span class="power-name">Sarsıntı</span>
+        <span class="power-meta" id="quakeMeta">Ücretsiz (1)</span>
+      </button>
+      <button id="btnLaser" class="power-btn" data-cost="35">
+        <span class="power-icon">⚡</span>
+        <span class="power-name">Lazer</span>
+        <span class="power-meta" id="laserMeta">Ücretsiz (1)</span>
+      </button>
+      <button id="btnZeroG" class="power-btn" data-cost="30">
+        <span class="power-icon">🌀</span>
+        <span class="power-name">Zero-G</span>
+        <span class="power-meta" id="zeroGMeta">Ücretsiz (1)</span>
+      </button>
+      <button id="btnMagnet" class="power-btn" data-cost="35">
+        <span class="power-icon">🧲</span>
+        <span class="power-name">Mıknatıs</span>
+        <span class="power-meta" id="magnetMeta">Ücretsiz (1)</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- Encyclopedia Modal -->
+  <div id="dexModal" class="sheet-modal hidden">
+    <div class="sheet-card">
+      <div class="sheet-header">
+        <h3>🪐 Kozmik Evrim Albümü</h3>
+        <button class="close-sheet" data-close="dexModal">✕</button>
+      </div>
+      <p class="sheet-desc">Aynı gezegenleri birleştirerek Kara Delik'e ulaş. İki Kara Delik birleşirse Big Bang tetiklenir!</p>
+      <div class="guide-pills">
+        <span>🌈 Kuantum = Joker Evrim</span>
+        <span>❄️ Buz = Yanında birleş</span>
+        <span>YEDEK ⇄ = Takas</span>
+        <span>🧲 = Aynıları çeker</span>
+      </div>
+      <div id="dexGrid" class="dex-grid"></div>
+    </div>
+  </div>
+
+  <!-- Daily Missions & Achievements Modal -->
+  <div id="missionsModal" class="sheet-modal hidden">
+    <div class="sheet-card">
+      <div class="sheet-header">
+        <div class="sheet-tabs">
+          <button id="tabMissions" class="sheet-tab active">🎯 Görevler</button>
+          <button id="tabAchievements" class="sheet-tab">🏆 Başarımlar</button>
+          <button id="tabLeaderboard" class="sheet-tab">📊 Sıralama</button>
+        </div>
+        <button class="close-sheet" data-close="missionsModal">✕</button>
+      </div>
+      <p id="missionsSubDesc" class="sheet-desc">Görevleri tamamla, güçler ve temalar için Stardust (✦) kazan.</p>
+      <div id="missionsList" class="missions-list"></div>
+      <div id="achievementsList" class="missions-list hidden"></div>
+      <div id="leaderboardPanel" class="hidden">
+        <div class="profile-edit-row">
+          <input id="playerNameInput" class="profile-input" type="text" maxlength="14" placeholder="Takma Adın" />
+          <div id="avatarPicker" class="avatar-picker"></div>
+        </div>
+        <div id="statsMiniGrid" class="stats-mini-grid"></div>
+        <div id="leaderboardList" class="missions-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Themes Store Modal -->
+  <div id="themesModal" class="sheet-modal hidden">
+    <div class="sheet-card">
+      <div class="sheet-header">
+        <h3>🎨 Evren Tema Mağazası</h3>
+        <button class="close-sheet" data-close="themesModal">✕</button>
+      </div>
+      <p class="sheet-desc">Stardust (✦) ile yeni evren temaları aç ve oyunun görünümünü değiştir.</p>
+      <div id="themesList" class="missions-list"></div>
+      <div class="store-extras">
+        <button id="btnRewardedStardust" class="btn-ad">🎬 +50 ✦ Kazan</button>
+        <button id="btnRemoveAds" class="btn-secondary" style="font-size:12px;padding:10px 8px;">💎 Reklamsız Mod</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>

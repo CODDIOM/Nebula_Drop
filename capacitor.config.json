@@ -1,0 +1,8 @@
+{
+  "appId": "com.coddiom.nebuladrop",
+  "appName": "Nebula Drop",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  }
+}
