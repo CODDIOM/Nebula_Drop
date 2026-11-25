@@ -62,6 +62,18 @@ class AdService {
     );
   }
 
+  hasBannerSupport() {
+    return this.isNative ? Boolean(this.adMobPlugin) : this.isAdSenseReady();
+  }
+
+  hasInterstitialSupport() {
+    return Boolean(this.isNative && this.adMobPlugin);
+  }
+
+  hasRewardedSupport() {
+    return Boolean(this.isNative && this.adMobPlugin);
+  }
+
   loadAdSenseScript() {
     if (this.adSenseScriptLoaded || !this.isAdSenseReady()) return;
     this.adSenseScriptLoaded = true;
@@ -90,23 +102,20 @@ class AdService {
 
   async setBannerVisible(visible, slotEl = null) {
     if (slotEl) {
-      slotEl.classList.toggle("hidden", !visible);
+      const shouldShowWebBanner = !this.isNative && visible && this.isAdSenseReady();
+      slotEl.classList.toggle("hidden", this.isNative ? !visible : !shouldShowWebBanner);
 
       // Web Google AdSense Banner rendering
-      if (!this.isNative && visible) {
-        if (this.isAdSenseReady()) {
-          this.loadAdSenseScript();
-          if (!this.adSenseBannerPushed) {
-            slotEl.innerHTML = `<ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px" data-ad-client="${ADSENSE_CONFIG.client}" data-ad-slot="${ADSENSE_CONFIG.bannerSlot}"></ins>`;
-            try {
-              (window.adsbygoogle = window.adsbygoogle || []).push({});
-              this.adSenseBannerPushed = true;
-            } catch {
-              // Ignore until script finishes loading
-            }
+      if (shouldShowWebBanner) {
+        this.loadAdSenseScript();
+        if (!this.adSenseBannerPushed) {
+          slotEl.innerHTML = `<ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px" data-ad-client="${ADSENSE_CONFIG.client}" data-ad-slot="${ADSENSE_CONFIG.bannerSlot}"></ins>`;
+          try {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            this.adSenseBannerPushed = true;
+          } catch {
+            // Ignore until script finishes loading
           }
-        } else {
-          slotEl.textContent = "📢 Web Reklam Alanı (AdSense ID bekleniyor)";
         }
       }
     }
@@ -175,15 +184,10 @@ class AdService {
       }
     }
 
-    return this.showPreviewOverlay(
-      "GEÇİŞ REKLAMI ÖNİZLEME",
-      "📺 Geçiş Reklamı",
-      "Mobil uygulamada her 2 oyunda bir AdMob Interstitial gösterilir.<br/><em>(Web'de alt AdSense 320×50 banner aktiftir)</em>",
-      2
-    );
+    return false;
   }
 
-  async showRewardedAd(rewardLabel = "+50 Stardust") {
+  async showRewardedAd(_rewardLabel = "+50 Stardust") {
     if (this.isNative && this.adMobPlugin) {
       await this.init();
       try {
@@ -198,12 +202,7 @@ class AdService {
       }
     }
 
-    return this.showPreviewOverlay(
-      "ÖDÜLLÜ REKLAM ÖNİZLEME",
-      "🎬 Ödüllü Video Alanı",
-      `Mobil derlemede AdMob ödüllü video oynatılır.<br/>Ödül: <strong>${rewardLabel}</strong>`,
-      2
-    );
+    return false;
   }
 }
 

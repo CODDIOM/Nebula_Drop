@@ -91,6 +91,7 @@ const el = {
   leaderboardList: document.getElementById("leaderboardList"),
   onboardingHint: document.getElementById("onboardingHint"),
   btnContinueRewarded: document.getElementById("btnContinueRewarded"),
+  storeExtras: document.getElementById("storeExtras"),
   btnRewardedStardust: document.getElementById("btnRewardedStardust"),
   btnRemoveAds: document.getElementById("btnRemoveAds"),
   adBannerSlot: document.getElementById("adBannerSlot"),
@@ -787,6 +788,7 @@ function triggerGameOver(reason = "overflow") {
   el.finalBest.textContent = getBestForMode().toLocaleString("tr-TR");
   el.earnedStardust.textContent = `+${stardustEarned}`;
   el.maxPlanetReached.textContent = `Seviye ${state.level} • En Büyük: ${getPlanetSpec(state.maxTierThisRun, state.activeTheme).name}`;
+  el.btnContinueRewarded.classList.toggle("hidden", !ads.hasRewardedSupport?.());
   el.btnContinueRewarded.disabled = reason === "timeout" || state.continuedOnce;
   el.btnContinueAd.disabled = reason === "timeout" || state.continuedOnce || meta.stardust < 40;
   el.gameOverModal.classList.remove("hidden");
@@ -891,7 +893,7 @@ let restartCount = 0;
 
 el.btnRestart.addEventListener("click", async () => {
   restartCount += 1;
-  if (!meta.adsRemoved && restartCount % 2 === 0) {
+  if (!meta.adsRemoved && ads.hasInterstitialSupport?.() && restartCount % 2 === 0) {
     await ads.showInterstitial();
   }
   resetGame(state.mode);
@@ -1140,8 +1142,18 @@ el.btnMissions.addEventListener("click", () => {
   el.missionsModal.classList.remove("hidden");
 });
 
-el.btnThemes.addEventListener("click", () => {
+function syncAdUI() {
+  const showRewarded = Boolean(ads.hasRewardedSupport?.());
+  const showBannerToggle = Boolean(ads.hasBannerSupport?.());
+  el.btnContinueRewarded.classList.toggle("hidden", !showRewarded);
+  el.btnRewardedStardust.classList.toggle("hidden", !showRewarded);
+  el.btnRemoveAds.classList.toggle("hidden", !showBannerToggle);
+  el.storeExtras?.classList.toggle("hidden", !showRewarded && !showBannerToggle);
   el.btnRemoveAds.textContent = meta.adsRemoved ? "💎 Reklamsız Aktif ✓" : "💎 Reklamsız Mod";
+}
+
+el.btnThemes.addEventListener("click", () => {
+  syncAdUI();
   renderThemes();
   el.themesModal.classList.remove("hidden");
 });
@@ -1199,10 +1211,79 @@ canvas.addEventListener("pointerdown", (e) => {
 
 el.btnHold.addEventListener("click", swapHold);
 
+const keysHeld = new Set();
+
+function isTypingTarget(target) {
+  return Boolean(
+    target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+  );
+}
+
+function hasOpenSheetModal() {
+  return (
+    !el.dexModal.classList.contains("hidden") ||
+    !el.missionsModal.classList.contains("hidden") ||
+    !el.themesModal.classList.contains("hidden")
+  );
+}
+
 window.addEventListener("keydown", (e) => {
-  if (e.code === "KeyH" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
-    swapHold();
+  if (isTypingTarget(e.target)) return;
+
+  if (e.code === "Escape") {
+    if (state.laserMode) {
+      el.btnCancelLaser.click();
+      return;
+    }
+    if (hasOpenSheetModal()) {
+      el.dexModal.classList.add("hidden");
+      el.missionsModal.classList.add("hidden");
+      el.themesModal.classList.add("hidden");
+    }
+    return;
   }
+
+  if (state.introActive) {
+    if (!e.repeat && (e.code === "Enter" || e.code === "Space")) {
+      e.preventDefault();
+      startGameFromIntro(null);
+    }
+    return;
+  }
+
+  if (state.gameOver || hasOpenSheetModal()) return;
+
+  if (e.code === "ArrowLeft" || e.code === "KeyA" || e.code === "ArrowRight" || e.code === "KeyD") {
+    e.preventDefault();
+    keysHeld.add(e.code);
+    return;
+  }
+
+  if (e.repeat) return;
+
+  if (e.code === "Space" || e.code === "ArrowDown" || e.code === "Enter") {
+    e.preventDefault();
+    dropCurrentPlanet();
+  } else if (e.code === "KeyH" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
+    e.preventDefault();
+    swapHold();
+  } else if (e.code === "Digit1") {
+    el.btnQuake.click();
+  } else if (e.code === "Digit2") {
+    el.btnLaser.click();
+  } else if (e.code === "Digit3") {
+    el.btnZeroG.click();
+  } else if (e.code === "Digit4") {
+    el.btnMagnet.click();
+  }
+});
+
+window.addEventListener("keyup", (e) => {
+  keysHeld.delete(e.code);
+});
+
+window.addEventListener("blur", () => {
+  keysHeld.clear();
 });
 
 canvas.addEventListener("pointermove", (e) => {
@@ -1225,6 +1306,15 @@ function tick(now) {
   lastTime = now;
 
   if (!state.gameOver && !state.introActive) {
+    if (!state.laserMode && !hasOpenSheetModal()) {
+      const moveDir =
+        (keysHeld.has("ArrowRight") || keysHeld.has("KeyD") ? 1 : 0) -
+        (keysHeld.has("ArrowLeft") || keysHeld.has("KeyA") ? 1 : 0);
+      if (moveDir !== 0) {
+        state.aimX = clampAimX(state.aimX + moveDir * 320 * dt, state.current);
+      }
+    }
+
     if (!state.canDrop) {
       state.dropCooldown -= dt;
       if (state.dropCooldown <= 0) state.canDrop = true;
@@ -1411,10 +1501,11 @@ sound.setTrack(state.activeTheme);
 openIntroScreen();
 
 ads.init?.();
+syncAdUI();
 if (typeof ads.setBannerVisible === "function") {
   ads.setBannerVisible(!meta.adsRemoved, el.adBannerSlot);
 } else {
-  el.adBannerSlot.classList.toggle("hidden", Boolean(meta.adsRemoved));
+  el.adBannerSlot.classList.add("hidden");
 }
 
 if (!meta.onboardingSeen) {

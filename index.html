@@ -122,7 +122,7 @@
 
       <!-- First-Time Onboarding Hint -->
       <div id="onboardingHint" class="onboarding-hint hidden">
-        👆 Kaydırarak nişan al, bırakınca düşür!
+        👆 Kaydır veya ⬅️➡️ / Space ile düşür!
       </div>
 
       <!-- Game Over Overlay -->
@@ -146,7 +146,7 @@
           </div>
           <div id="maxPlanetReached" class="max-planet-badge"></div>
           <div class="modal-buttons">
-            <button id="btnContinueRewarded" class="btn-ad">
+            <button id="btnContinueRewarded" class="btn-ad hidden">
               🎬 Reklam İzle & Devam Et (Ücretsiz)
             </button>
             <button id="btnContinueAd" class="btn-secondary">
@@ -187,10 +187,8 @@
       </button>
     </footer>
 
-    <!-- AdMob Banner Slot (Web Preview / Native Placeholder) -->
-    <div id="adBannerSlot" class="ad-banner-slot">
-      📢 AdMob Banner Alanı (320×50 Test)
-    </div>
+    <!-- Web AdSense Banner Slot (hidden until AdSense is enabled) -->
+    <div id="adBannerSlot" class="ad-banner-slot hidden"></div>
 
     <!-- Animated Intro / Title Screen -->
     <div id="introOverlay" class="intro-overlay">
@@ -281,9 +279,9 @@
       </div>
       <p class="sheet-desc">Stardust (✦) ile yeni evren temaları aç ve oyunun görünümünü değiştir.</p>
       <div id="themesList" class="missions-list"></div>
-      <div class="store-extras">
-        <button id="btnRewardedStardust" class="btn-ad">🎬 +50 ✦ Kazan</button>
-        <button id="btnRemoveAds" class="btn-secondary" style="font-size:12px;padding:10px 8px;">💎 Reklamsız Mod</button>
+      <div id="storeExtras" class="store-extras hidden">
+        <button id="btnRewardedStardust" class="btn-ad hidden">🎬 +50 ✦ Kazan</button>
+        <button id="btnRemoveAds" class="btn-secondary hidden" style="font-size:12px;padding:10px 8px;">💎 Reklamsız Mod</button>
       </div>
     </div>
   </div>
